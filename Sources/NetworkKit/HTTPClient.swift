@@ -7,11 +7,20 @@
 
 import Foundation
 
-public class HTTPClient: NSObject {
+public protocol HTTPClientProtocol {
+    func send<Req: HTTPRequest>(_ request: Req) async -> Result<Req.ResponseType, Error>
+    func send<Req: HTTPRequest>(_ request: Req, handlers: [ResponseHandler]) async -> Result<Req.ResponseType, Error>
+}
+
+public class HTTPClient: NSObject, HTTPClientProtocol {
     
     private let session: URLSession = URLSession.shared
     
     private var requestQueue: [URLRequest] = []
+    
+    public func send<Req>(_ request: Req) async -> Result<Req.ResponseType, Error> where Req : HTTPRequest {
+        await self.send(request, handlers: [])
+    }
     
     public func send<Req: HTTPRequest>(_ request: Req,
                                        handlers: [ResponseHandler] = []) async -> Result<Req.ResponseType, Error> {
