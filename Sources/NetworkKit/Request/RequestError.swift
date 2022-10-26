@@ -10,5 +10,4 @@ import Foundation
 public enum RequestError: Error {
     case baseURLInvalid
     case noURL
-    case redundantRequest(apiName: String)
 }

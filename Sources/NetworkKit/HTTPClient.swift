@@ -15,9 +15,7 @@ public protocol HTTPClientProtocol {
 public class HTTPClient: NSObject, HTTPClientProtocol {
     
     private let session: URLSession = URLSession.shared
-    
-    private var requestQueue: [URLRequest] = []
-    
+        
     public func send<Req>(_ request: Req) async -> Result<Req.ResponseType, Error> where Req : HTTPRequest {
         await self.send(request, handlers: [])
     }
@@ -31,12 +29,6 @@ public class HTTPClient: NSObject, HTTPClientProtocol {
             return .failure(error)
         }
         
-        if requestQueue.contains(urlRequest) {
-            return .failure(RequestError.redundantRequest(apiName: urlRequest.url?.path ?? ""))
-        } else {
-            requestQueue.append(urlRequest)
-        }
-        
         do {
             let result: (data: Data, response: URLResponse)
             if #available(iOS 15, *) {
@@ -46,7 +38,6 @@ public class HTTPClient: NSObject, HTTPClientProtocol {
             }
             
             guard let response = result.response as? HTTPURLResponse else {
-                removeRequestQueue()
                 return .failure(ResponseError.nonHTTPResponse)
             }
             
@@ -57,7 +48,6 @@ public class HTTPClient: NSObject, HTTPClientProtocol {
             
             return await handleResponse(handlers, request: request, data: result.data, response: response)
         } catch {
-            removeRequestQueue()
             return .failure(error)
         }
     }
@@ -86,18 +76,10 @@ public class HTTPClient: NSObject, HTTPClientProtocol {
                 return await send(request, handlers: handlers)
                 
             case .error(let error):
-                removeRequestQueue()
                 return .failure(error)
                 
             case .done(let value):
-                removeRequestQueue()
                 return .success(value)
-        }
-    }
-    
-    func removeRequestQueue() {
-        if !requestQueue.isEmpty {
-            requestQueue.removeFirst()
         }
     }
     
